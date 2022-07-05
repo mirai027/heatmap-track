@@ -4,12 +4,18 @@ import { getScrollbarWidth } from '@/utils';
 const scrollWidth = ref(getScrollbarWidth())
 const showModal = ref(false)
 
-const createElement = (x: number, y: number) => {
+const hideModal = () => {
+  setTimeout(() => {
+    showModal.value = false
+  }, 200)
+}
+
+const createElement = (x: number, y: number, position: 'absolute' | 'fixed') => {
   const div = document.createElement('div')
   div.style.width = '10px'
   div.style.height = '10px'
   div.style.backgroundColor = '#f00'
-  div.style.position = 'absolute'
+  div.style.position = position
   div.style.left = x - 5 + 'px'
   div.style.top = y - 5 + 'px'
   document.body.appendChild(div)
@@ -34,12 +40,42 @@ const realFixedElement = (element: HTMLElement): HTMLElement => {
   return element
 }
 
+const computedFixedPointX = (point: TrackPointType, innerWidth: number) => {
+  const { x, sw, w, ol, } = point
+  const centerXCoord = sw / 2
+  const isCenter = (ol! + 10) > centerXCoord && (ol! - 10) < centerXCoord || ol === 0
+  const isRight = ol! > centerXCoord
+  const isLeft = ol! < centerXCoord
+
+  if (isCenter) {
+    // 相对于[目标元素]，用户点击的位置
+    const targetPonitX = x - (sw - w) / 2
+    // [当前 html]中[目标元素] offsetLeft位置
+    const currentOffsetLeft = (innerWidth - w) / 2
+    return ~~(currentOffsetLeft + targetPonitX)
+  } else if (isRight) {
+    // [目标元素]在[目标 html]中的 offsetRight值
+    const offsetRight = sw - ol! - w
+    // [目标元素]在[当前 html]中 offsetLeft的值
+    const currentOffsetLeft = innerWidth - w - offsetRight
+    // 相对于[目标元素]，用户点击的位置
+    const targetPointX = x - ol!
+    return ~~(currentOffsetLeft + targetPointX)
+  } else {
+    return ~~(x)
+  }
+}
+
 const renderFixedPoint = () => {
   const pointList: TrackPointType[] = JSON.parse(sessionStorage.getItem('POINT_LIST') ?? '[]')
   const fixedPointList = pointList.filter(x => x.f)
 
+  const innerWidth = window.innerWidth
+  const innerHeight = window.innerHeight
+
   fixedPointList.forEach(point => {
-    createElement(point.x, point.y)
+    console.log('==', computedFixedPointX(point, innerWidth))
+    createElement(computedFixedPointX(point, innerWidth), point.y, 'fixed')
   })
 }
 
@@ -87,7 +123,7 @@ onMounted(() => {
       }
     }
 
-    createElement(pageX, pageY)
+    createElement(pageX, pageY, 'absolute')
 
     postTrackEvent({
       u: window.location.href,
@@ -150,7 +186,7 @@ onMounted(() => {
     <div class="el-modal-wrapper" v-if="showModal">
       <div class="el-modal">Lorem, ipsum dolor sit amet consectetur adipisicing elit. Esse aliquid consequuntur, quis
         nam illo in maxime quos magni aliquam non consectetur ad facilis magnam ut ullam saepe laborum fugiat doloribus!
-        <div class="close close-track-element" @click="showModal = false"></div>
+        <div class="close close-track-element" @click="hideModal"></div>
       </div>
     </div>
   </div>
