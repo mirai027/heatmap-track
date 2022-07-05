@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { getScrollbarWidth } from '@/utils';
+import h337 from 'heatmap.js'
+import { getScrollbarWidth } from '@/utils'
 
 const scrollWidth = ref(getScrollbarWidth())
 const showModal = ref(false)
@@ -99,6 +100,15 @@ const computedFixedPointY = (point: TrackPointType, innerHeight: number) => {
   }
 }
 
+const getPointMaxCountValue = (heatmapList: { x: number; y: number; value: number; }[]) => {
+  const max = Object.values(heatmapList.reduce((pre: Record<string, number>, cur) => {
+    const pointKey = `${cur.x}_${cur.y}`
+    pre[pointKey] ? pre[pointKey]++ : (pre[pointKey] = 1)
+    return pre
+  }, {})).sort().at(-1) ?? 1
+  return max + 1
+}
+
 const renderFixedPoint = () => {
   const pointList: TrackPointType[] = JSON.parse(sessionStorage.getItem('POINT_LIST') ?? '[]')
   const fixedPointList = pointList.filter(x => x.f)
@@ -113,6 +123,34 @@ const renderFixedPoint = () => {
       computedFixedPointY(point, innerHeight),
       'fixed'
     )
+  })
+
+  const heatmapList = fixedPointList.map(point => ({
+    x: computedFixedPointX(point, innerWidth),
+    y: computedFixedPointY(point, innerHeight),
+    value: 1
+  }))
+
+  const heatmap = h337.create({
+    container: document.querySelector('#fixed-heatmap')!,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    radius: 18,
+    maxOpacity: 1,
+    minOpacity: 0.1,
+    blur: 0.8,
+    // gradient: {
+    //   0: '#206C7C',
+    //   '.2': '#2EA9A1',
+    //   '.4': '#91EABC',
+    //   '.6': '#FFF598',
+    //   '.8': '#FFB74A',
+    //   1: '#ff0000',
+    // },
+  })
+  heatmap.setData({
+    min: 0,
+    max: getPointMaxCountValue(heatmapList),
+    data: heatmapList,
   })
 }
 
@@ -231,6 +269,8 @@ onMounted(() => {
   <div class="center" />
   <div class="fixed-wrapper show-modal" @click="showModal = true">模态框</div>
   <div class="fixed-wrapper render-track" @click="renderFixedPoint">埋点</div>
+
+  <div id="fixed-heatmap"></div>
 </template>
 
 <style scoped lang="scss">
@@ -386,8 +426,7 @@ onMounted(() => {
     width: 80px;
     position: fixed;
     right: 30px;
-    top: 50%;
-    transform: translateY(-50%);
+    top: 35%;
     border-radius: 8px;
     overflow: hidden;
 
@@ -488,5 +527,15 @@ onMounted(() => {
 
 .render-track {
   top: 180px;
+}
+
+#fixed-heatmap {
+  position: fixed !important;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 2000;
+  pointer-events: none;
 }
 </style>
