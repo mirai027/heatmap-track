@@ -43,9 +43,9 @@ const realFixedElement = (element: HTMLElement): HTMLElement => {
 const computedFixedPointX = (point: TrackPointType, innerWidth: number) => {
   const { x, sw, w, ol, } = point
   const centerXCoord = sw / 2
+  const isLeft = ol! < centerXCoord
   const isCenter = (ol! + 10) > centerXCoord && (ol! - 10) < centerXCoord || ol === 0
   const isRight = ol! > centerXCoord
-  const isLeft = ol! < centerXCoord
 
   if (isCenter) {
     // 相对于[目标元素]，用户点击的位置
@@ -66,6 +66,39 @@ const computedFixedPointX = (point: TrackPointType, innerWidth: number) => {
   }
 }
 
+const computedFixedPointY = (point: TrackPointType, innerHeight: number) => {
+  const { y, sh, h, ot } = point
+  const centerYCoord = sh / 2
+
+  const isTop = ot! < centerYCoord || ot === 0
+  const isCenter = (ot! + 10) > centerYCoord && (ot! - 10) < centerYCoord
+  const isBottom = ot! > centerYCoord
+
+  if (isTop) {
+    if (ot === 0) {
+      return ~~(y)
+    }
+    // TODO: 存在设置了top: 百分比的元素（客服侧栏），临时根据手动计算百分比值特殊处理
+    const offsetTopPercent = ot! / sh
+    return ~~(y - ot! + innerHeight * offsetTopPercent)
+  } else if (isCenter) {
+    // 相对于[目标元素]，用户点击的位置
+    const targetPointY = y - (sh - h) / 2
+    // [目标元素]在[当前 html]中 offsetTop的值
+    const currentOffsetTop = (innerHeight - h) / 2
+    return ~~(targetPointY + currentOffsetTop)
+  } else {
+    // [目标元素]在[目标 html]中 offsetBottom的值
+    const offsetBottom = sh - ot! - h
+
+    // 相对于[目标元素]，用户点击的位置
+    const targetPointY = y - ot!
+    // [目标元素]在[当前 html]中 offsetTop的值
+    const currentOffsetTop = innerHeight - h - offsetBottom
+    return ~~(targetPointY + currentOffsetTop)
+  }
+}
+
 const renderFixedPoint = () => {
   const pointList: TrackPointType[] = JSON.parse(sessionStorage.getItem('POINT_LIST') ?? '[]')
   const fixedPointList = pointList.filter(x => x.f)
@@ -75,7 +108,11 @@ const renderFixedPoint = () => {
 
   fixedPointList.forEach(point => {
     console.log('==', computedFixedPointX(point, innerWidth))
-    createElement(computedFixedPointX(point, innerWidth), point.y, 'fixed')
+    createElement(
+      computedFixedPointX(point, innerWidth),
+      computedFixedPointY(point, innerHeight),
+      'fixed'
+    )
   })
 }
 
