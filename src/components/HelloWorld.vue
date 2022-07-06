@@ -45,7 +45,12 @@ const computedFixedPointX = (point: TrackPointType, innerWidth: number) => {
   const { x, sw, w, ol, } = point
   const centerXCoord = sw / 2
   const isLeft = ol! < centerXCoord
-  const isCenter = (ol! + 10) > centerXCoord && (ol! - 10) < centerXCoord || ol === 0
+  // 存在使用 margin: 0 auto居中的情况
+  const offsetLeft = (sw - w) / 2
+  const isCenter = (ol! + 10) > centerXCoord && (ol! - 10) < centerXCoord ||
+    (ol! + 10) > offsetLeft && (ol! - 10) < offsetLeft
+    || ol === 0
+
   const isRight = ol! > centerXCoord
 
   if (isCenter) {
@@ -113,11 +118,10 @@ const renderFixedPoint = () => {
   const pointList: TrackPointType[] = JSON.parse(sessionStorage.getItem('POINT_LIST') ?? '[]')
   const fixedPointList = pointList.filter(x => x.f)
 
-  const innerWidth = window.innerWidth
-  const innerHeight = window.innerHeight
+  const innerWidth = document.documentElement.clientWidth
+  const innerHeight = document.documentElement.clientHeight
 
   fixedPointList.forEach(point => {
-    console.log('==', computedFixedPointX(point, innerWidth))
     createElement(
       computedFixedPointX(point, innerWidth),
       computedFixedPointY(point, innerHeight),
@@ -158,8 +162,8 @@ onMounted(() => {
   document.addEventListener('click', (event) => {
     const { x, y, pageX, pageY } = event
 
-    const sw = window.innerWidth
-    const sh = window.innerHeight
+    const sw = document.documentElement.clientWidth
+    const sh = document.documentElement.clientHeight
 
     const target = event.target as HTMLElement
 
@@ -167,7 +171,7 @@ onMounted(() => {
       return
     }
 
-    const { width: w, height: h } = target.getBoundingClientRect()
+    let { width: w, height: h } = target.getBoundingClientRect()
     const cn = target.className
 
     let f: boolean | undefined = undefined
@@ -175,11 +179,8 @@ onMounted(() => {
     let ot: number | undefined = undefined
     let fcn: string | undefined = undefined
 
-    console.log('[ qwk-log ] ~ event.composedPath()', event.composedPath())
     for (let index = 0; index < event.composedPath().length; index++) {
       const element = event.composedPath()[index] as HTMLElement
-      console.log('[ qwk-log ] ~ element', element)
-
       if (element.id === 'app' || element.className === 'wap-body') {
         break
       }
@@ -188,17 +189,32 @@ onMounted(() => {
       if (
         window.getComputedStyle(element).getPropertyValue('position') === 'fixed'
       ) {
-        console.log('===', element)
         f = true
         // 可能存在父元素是 fixed元素，子元素是 relative居中定位。这种情况下实际需要的是子元素的 offset、className等值，因此需要进一步判断
         const realElement = realFixedElement(element)
         ol = realElement.offsetLeft
         ot = realElement.offsetTop
         fcn = realElement.className
+        w = realElement.offsetWidth
+        h = realElement.offsetHeight
       }
     }
 
     createElement(pageX, pageY, 'absolute')
+
+    let sbw = 0
+    let sbh = 0
+
+    const sbY = document.body.scrollHeight > window.innerHeight
+    const mainInnerWidth = window.innerWidth + scrollWidth.value
+    const sbX = (mainInnerWidth + 2) < document.body.scrollWidth && (mainInnerWidth - 2) > document.body.scrollWidth
+
+    if (sbY) {
+      sbw = scrollWidth.value
+    }
+    if (sbX) {
+      sbh = scrollWidth.value
+    }
 
     postTrackEvent({
       u: window.location.href,
@@ -215,8 +231,8 @@ onMounted(() => {
       ot,
       cn,
       fcn,
-      sbw: scrollWidth.value,
-      sbh: scrollWidth.value,
+      sbw,
+      sbh,
     })
   }, false)
 })
@@ -475,8 +491,10 @@ onMounted(() => {
     .el-modal {
       position: relative;
       top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
+      // left: 50%;
+      // transform: translate(-50%, -50%);
+      transform: translateY(-50%);
+      margin: 0 auto;
       width: 300px;
       height: 150px;
       background-color: #fff;
