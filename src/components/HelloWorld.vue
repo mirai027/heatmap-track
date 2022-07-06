@@ -531,12 +531,6 @@ onMounted(() => {
         font-size: 16px;
         color: #fff;
         margin-top: 4px;
-        background-color: #2fdcff;
-        background-color: #1efced;
-        background-color: #46ff9f;
-        background-color: #ffe81e;
-        background-color: #ffa51e;
-        background-color: #ff1b1b;
       }
     }
   }
