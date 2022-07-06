@@ -121,13 +121,13 @@ const renderFixedPoint = () => {
   const innerWidth = document.documentElement.clientWidth
   const innerHeight = document.documentElement.clientHeight
 
-  fixedPointList.forEach(point => {
-    createElement(
-      computedFixedPointX(point, innerWidth),
-      computedFixedPointY(point, innerHeight),
-      'fixed'
-    )
-  })
+  // fixedPointList.forEach(point => {
+  //   createElement(
+  //     computedFixedPointX(point, innerWidth),
+  //     computedFixedPointY(point, innerHeight),
+  //     'fixed'
+  //   )
+  // })
 
   const heatmapList = fixedPointList.map(point => ({
     x: computedFixedPointX(point, innerWidth),
@@ -137,25 +137,80 @@ const renderFixedPoint = () => {
 
   const heatmap = h337.create({
     container: document.querySelector('#fixed-heatmap')!,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    radius: 18,
-    maxOpacity: 1,
-    minOpacity: 0.1,
-    blur: 0.8,
-    // gradient: {
-    //   0: '#206C7C',
-    //   '.2': '#2EA9A1',
-    //   '.4': '#91EABC',
-    //   '.6': '#FFF598',
-    //   '.8': '#FFB74A',
-    //   1: '#ff0000',
-    // },
+    // backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    radius: 16,
+    blur: 0.7,
+    gradient: {
+      0: '#2fdcff',
+      '.2': '#1efced',
+      '.4': '#46ff9f',
+      '.6': '#ffe81e',
+      '.8': '#ffa51e',
+      1: '#ff1b1b',
+    },
   })
   heatmap.setData({
     min: 0,
     max: getPointMaxCountValue(heatmapList),
     data: heatmapList,
   })
+}
+
+const renderStaticPoint = () => {
+  const pointList: TrackPointType[] = JSON.parse(sessionStorage.getItem('POINT_LIST') ?? '[]')
+  const staticPointList = pointList.filter(x => !x.f)
+
+  const innerWidth = document.documentElement.clientWidth
+
+  const heatmapList = staticPointList.map(point => {
+    const { px, py, sw } = point
+
+    // 当前 html版心的左边距
+    const currentMargin = (innerWidth - 1200) / 2
+    console.log('[ qwk-log ] ~ currentMargin', currentMargin)
+
+    // 为适配不同分辨率屏幕，计算方式为 版心左边距 + 相对于版心 x坐标位置
+    if (sw <= 1200) {
+      return {
+        x: ~~(currentMargin + px),
+        y: ~~py,
+        value: 1,
+      }
+    }
+
+    // 目标 html相对于版心 x坐标位置
+    const outsideInnerX = px - (sw - 1200) / 2
+    return {
+      x: ~~(currentMargin + outsideInnerX),
+      y: ~~py,
+      value: 1,
+    }
+  })
+
+  const heatmap = h337.create({
+    container: document.querySelector('#app')!,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    radius: 16,
+    blur: 0.7,
+    gradient: {
+      0: '#2fdcff',
+      '.2': '#1efced',
+      '.4': '#46ff9f',
+      '.6': '#ffe81e',
+      '.8': '#ffa51e',
+      1: '#ff1b1b',
+    },
+  })
+  heatmap.setData({
+    min: 0,
+    max: getPointMaxCountValue(heatmapList),
+    data: heatmapList,
+  })
+}
+
+const renderHeatmap = () => {
+  renderStaticPoint()
+  renderFixedPoint()
 }
 
 onMounted(() => {
@@ -284,7 +339,7 @@ onMounted(() => {
 
   <div class="center" />
   <div class="fixed-wrapper show-modal" @click="showModal = true">模态框</div>
-  <div class="fixed-wrapper render-track" @click="renderFixedPoint">埋点</div>
+  <div class="fixed-wrapper render-track" @click="renderHeatmap">埋点</div>
 
   <div id="fixed-heatmap"></div>
 </template>
@@ -476,6 +531,12 @@ onMounted(() => {
         font-size: 16px;
         color: #fff;
         margin-top: 4px;
+        background-color: #2fdcff;
+        background-color: #1efced;
+        background-color: #46ff9f;
+        background-color: #ffe81e;
+        background-color: #ffa51e;
+        background-color: #ff1b1b;
       }
     }
   }
